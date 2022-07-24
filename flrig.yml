@@ -1,0 +1,79 @@
+---
+
+- name: Install FLRig
+  hosts: localhost
+  vars:
+    flrig_version: 1.4.5
+    flrig_source_url: http://www.w1hkj.com/files/flrig/flrig-{{ flrig_version }}.tar.gz
+
+  tasks:
+  - name: Downloading flrig sources
+    ansible.builtin.get_url:
+      url: "{{ flrig_source_url }}"
+      dest: "/tmp/flrig-{{ flrig_version }}.tar.gz"
+    register: flrig_source
+
+  - name: Unpacking flrig
+    ansible.builtin.unarchive:
+      remote_src: yes
+      dest: /tmp/
+      src: "{{ flrig_source.dest }}"
+    when: flrig_source.changed
+    register: flrig_source_unpack
+
+  - name: Configure flrig
+    ansible.builtin.command:
+      cmd: "./configure"
+    args:
+      chdir: "/tmp/flrig-{{ flrig_version }}"
+    when: flrig_source_unpack is changed
+    register: flrig_configured
+
+  - name: Compile flrig
+    ansible.builtin.command:
+      cmd: "make -j4"
+    args:
+      chdir: "/tmp/flrig-{{ flrig_version }}"
+    when: flrig_configured is changed
+    register: flrig_compiled
+
+  - name: Install flrig
+    become: yes
+    ansible.builtin.command:
+      cmd: "make install"
+    args:
+      chdir: "/tmp/flrig-{{ flrig_version }}"
+    when: flrig_compiled is changed
+    register: flrig_installed
+
+  - name: Copying desktop file
+    become: yes
+    ansible.builtin.copy:
+      remote_src: yes
+      src: /usr/local/share/applications/flrig.desktop
+      dest: /usr/share/applications
+      owner: root
+      group: root
+      mode: 0644
+    when: flrig_installed is changed
+
+  - name: Copying icon
+    become: yes
+    ansible.builtin.copy:
+      remote_src: yes
+      src: /usr/local/share/pixmaps/flrig.xpm
+      dest: /usr/share/pixmaps
+      owner: root
+      group: root
+      mode: 0644
+    when: flrig_installed is changed
+
+  - name: Remove sources
+    become: yes
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: absent
+    loop:
+      - "/tmp/flrig-{{ flrig_version }}.tar.gz"
+      - "/tmp/flrig-{{ flrig_version }}"
+    when: flrig_installed is changed

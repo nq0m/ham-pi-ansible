@@ -1,0 +1,36 @@
+---
+
+- name: Install HAMRS
+  hosts: localhost
+  vars:
+    hamrs_version: 1.0.6
+    hamrs_url: https://hamrs-releases.s3.us-east-2.amazonaws.com/{{ hamrs_version }}/hamrs-{{ hamrs_version }}-linux-armv7l.AppImage
+
+  tasks:
+  - name: Downloading HAMRS AppImage
+    become: yes
+    ansible.builtin.get_url:
+      url: "{{ hamrs_url }}"
+      dest: "/usr/local/bin/hamrs"
+      owner: root
+      group: root
+      mode: 0755
+
+  - name: Copying desktop file
+    become: yes
+    ansible.builtin.copy:
+      src: files/hamrs.desktop
+      dest: /usr/share/applications/hamrs.desktop
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Copying icon
+    become: yes
+    ansible.builtin.copy:
+      src: files/hamrs-logo.png
+      dest: /usr/share/pixmaps/hamrs-logo.png
+      owner: root
+      group: root
+      mode: 0644
+      

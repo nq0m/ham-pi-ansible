@@ -1,0 +1,79 @@
+---
+
+- name: Install FLDigi
+  hosts: localhost
+  vars:
+    fldigi_version: 4.1.23
+    fldigi_source_url: http://www.w1hkj.com/files/fldigi/fldigi-{{ fldigi_version }}.tar.gz
+
+  tasks:
+  - name: Downloading FLDigi sources
+    ansible.builtin.get_url:
+      url: "{{ fldigi_source_url }}"
+      dest: "/tmp/fldigi-{{ fldigi_version }}.tar.gz"
+    register: fldigi_source
+
+  - name: Unpacking FLDigi
+    ansible.builtin.unarchive:
+      remote_src: yes
+      dest: /tmp/
+      src: "{{ fldigi_source.dest }}"
+    when: fldigi_source.changed
+    register: fldigi_source_unpack
+
+  - name: Configure FLDigi
+    ansible.builtin.command:
+      cmd: "./configure --disable-flarq"
+    args:
+      chdir: "/tmp/fldigi-{{ fldigi_version }}"
+    when: fldigi_source_unpack is changed
+    register: fldigi_configured
+
+  - name: Compile FLDigi
+    ansible.builtin.command:
+      cmd: "make -j4"
+    args:
+      chdir: "/tmp/fldigi-{{ fldigi_version }}"
+    when: fldigi_configured is changed
+    register: fldigi_compiled
+
+  - name: Install FLDigi
+    become: yes
+    ansible.builtin.command:
+      cmd: "make install"
+    args:
+      chdir: "/tmp/fldigi-{{ fldigi_version }}"
+    when: fldigi_compiled is changed
+    register: fldigi_installed
+
+  - name: Copying desktop file
+    become: yes
+    ansible.builtin.copy:
+      remote_src: yes
+      src: /usr/local/share/applications/fldigi.desktop
+      dest: /usr/share/applications
+      owner: root
+      group: root
+      mode: 0644
+    when: fldigi_installed is changed
+
+  - name: Copying icon
+    become: yes
+    ansible.builtin.copy:
+      remote_src: yes
+      src: /usr/local/share/pixmaps/fldigi.xpm
+      dest: /usr/share/pixmaps
+      owner: root
+      group: root
+      mode: 0644
+    when: fldigi_installed is changed
+
+  - name: Remove sources
+    become: yes
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: absent
+    loop:
+      - "/tmp/fldigi-{{ fldigi_version }}.tar.gz"
+      - "/tmp/fldigi-{{ fldigi_version }}"
+    when: fldigi_installed is changed
