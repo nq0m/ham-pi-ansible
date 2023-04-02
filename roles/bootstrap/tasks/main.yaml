@@ -1,0 +1,95 @@
+---
+# Tasks file for bootstrapping a new K3s node
+- name: Update all packages
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+    update_cache: yes
+    autoremove: yes
+
+- name: Install ZSH
+  ansible.builtin.apt:
+    name: "zsh"
+    state: latest
+
+- name: Update shell for jeremy to ZSH
+  ansible.builtin.user:
+    name: "jeremy"
+    shell: "/usr/bin/zsh"
+
+- name: Install authorized keys for user jeremy
+  ansible.posix.authorized_key:
+    user: jeremy
+    state: present
+    key: "{{ item }}"
+  loop:
+    # Putty key
+    - "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEArRni6i0U8W76BA0A2eLnPdO2x6oXi+1jXQ4aSAFQ01FIxjfNBsnW/3tDAQCTAbwnx9aZBbBZ6Ych1+AGnVNH2wOBJqbAiD7baTvECnLbGOCYYyj4OydjUzm4hNOFVl1FnzOr+sNRD2zE0V+UbEX5xpd9IgKOBUxbgcFfyzEpv+IN7MsFixFrRYP7EzLK+g7ceA4sv6bftubepCsyIsuGWZFoGXW803j7PvneY1VA3xNEm5mvU6+Vl+MnNSC0G1dsQhNvy3Eq9Csd8JLll376selk/6gkVlCC+VtvLG3SP3xYu8+eHH6s5fHhMe6RpNp6TOKVtEa7JRUOUaxGgS6toQ== rsa-key-20141217"
+    # WSL Key
+    - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDX2I24x4vKPem1G0k4rAKZY5N+YYQsIWNmsGLRjPpxhu9Y3MrerZqrKylsz/W7qr4PgUsj5O6zP8migV9reOMEDb0n0r4Cp67X/UBB3qwniLP2cZnw78SSx3eB/ca3LXv/+UH5SYRo14q3804YGbCqw6ioRgaJG9GEy6YrGNNB25EbrNFaE/aI4se+qMkZ3X2Ii90xjX1BfT3MRfLKVx7L7IZ7AW83Uc/E5QpByN36cv+Ax3gZqASLx0AyAPTQYVZFHETE1qvA1CroUClzIIWOnW5AzD/U8LaTW4rhD4YitvnwNlr67eO0lZFlxmwL8mx+abujub8zP9KLc9B3oTha1RuYx3t5jkbjOBdCtbUwlFh8Qvy7GOZ7foRAJfSZ2ntYqHwFMmHikrqPTyoJS9EqSllRkoxt9/J668DvDiISPb38abVSWsM9KNv9+A54IUmIPzovASUC8EtG80YH4VBiXoAO18LRWgFb74+2NAw2WQYgM+BGjRF1U4jCn8c+1VE= jeremy@DESKTOP-GLH8GM8"
+
+- name: Allow user jeremy to sudo without password
+  ansible.builtin.copy:
+    src: jeremy-sudo
+    dest: /etc/sudoers.d/jeremy
+    owner: root
+    group: root
+    mode: 0400
+
+- name: Install git
+  ansible.builtin.apt:
+    name: "git"
+    state: latest
+
+- name: Install Vim
+  ansible.builtin.apt:
+    name: "vim"
+    state: latest
+
+- name: Install build tools
+  ansible.builtin.apt:
+    name: "build-essential"
+    state: latest
+
+- name: OhMyZSH - check if .zshrc exists
+  ansible.builtin.stat:
+    path: /home/jeremy/.zshrc
+  register: stat_rc_result
+
+- name: OhMyZSH - check if .oh-my-zsh exists
+  ansible.builtin.stat:
+    path: /home/jeremy/.oh-my-zsh
+  register: stat_oh_my_zsh_result
+
+- name: OhMyZSH - cloning repo
+  ansible.builtin.git:
+    repo: https://github.com/robbyrussell/oh-my-zsh
+    dest: /home/jeremy/.oh-my-zsh
+  when: not stat_oh_my_zsh_result.stat.exists
+
+- name: OhMyZSH - setting ownership of .oh-my-zsh
+  ansible.builtin.file:
+    path: /home/jeremy/.oh-my-zsh
+    state: directory
+    owner: jeremy
+    group: jeremy
+    recurse: yes
+
+- name: OhMyZSH - creating new .zshrc
+  ansible.builtin.copy:
+    src: /home/jeremy/.oh-my-zsh/templates/zshrc.zsh-template
+    dest: /home/jeremy/.zshrc
+    remote_src: yes
+    owner: jeremy
+    group: jeremy
+    mode: 0644
+  when: not stat_rc_result.stat.exists
+
+- name: OhMyZSH - set agnoster theme
+  ansible.builtin.copy:
+    src: theme.zsh
+    dest: /home/jeremy/.oh-my-zsh/custom/theme.zsh
+    owner: jeremy
+    group: jeremy
+    mode: 0644
+

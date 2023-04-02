@@ -1,0 +1,73 @@
+---
+# Tasks file for installing FLDigi
+- name: Install dependencies
+  ansible.builtin.apt:
+    pkg:
+    - libfltk1.3-dev
+
+- name: Downloading flwkey sources
+  ansible.builtin.get_url:
+    url: "{{ flwkey_source_url }}"
+    dest: "/tmp/flwkey-{{ flwkey_version }}.tar.gz"
+  register: flwkey_source
+
+- name: Unpacking flwkey
+  ansible.builtin.unarchive:
+    remote_src: yes
+    dest: /tmp/
+    src: "{{ flwkey_source.dest }}"
+  when: flwkey_source.changed
+  register: flwkey_source_unpack
+
+- name: Configure flwkey
+  ansible.builtin.command:
+    cmd: "./configure"
+  args:
+    chdir: "/tmp/flwkey-{{ flwkey_version }}"
+  when: flwkey_source_unpack is changed
+  register: flwkey_configured
+
+- name: Compile flwkey
+  ansible.builtin.command:
+    cmd: "make -j4"
+  args:
+    chdir: "/tmp/flwkey-{{ flwkey_version }}"
+  when: flwkey_configured is changed
+  register: flwkey_compiled
+
+- name: Install flwkey
+  ansible.builtin.command:
+    cmd: "make install"
+  args:
+    chdir: "/tmp/flwkey-{{ flwkey_version }}"
+  when: flwkey_compiled is changed
+  register: flwkey_installed
+
+- name: Copying desktop file
+  ansible.builtin.copy:
+    remote_src: yes
+    src: /usr/local/share/applications/flwkey.desktop
+    dest: /usr/share/applications
+    owner: root
+    group: root
+    mode: 0644
+  when: flwkey_installed is changed
+
+- name: Copying icon
+  ansible.builtin.copy:
+    remote_src: yes
+    src: /usr/local/share/pixmaps/flwkey.xpm
+    dest: /usr/share/pixmaps
+    owner: root
+    group: root
+    mode: 0644
+  when: flwkey_installed is changed
+
+- name: Remove sources
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/flwkey-{{ flwkey_version }}.tar.gz"
+    - "/tmp/flwkey-{{ flwkey_version }}"
+  when: flwkey_installed is changed

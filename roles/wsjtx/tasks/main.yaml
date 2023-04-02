@@ -1,0 +1,102 @@
+---
+# Tasks file for installing WSJT-X
+- name: Install dependencies
+  ansible.builtin.apt:
+    pkg:
+    - cmake
+    - libusb-1.0-0-dev
+    - gfortran
+    - libboost-all-dev
+    - fftw3-dev
+    - qtbase5-dev
+    - qttools5-dev
+    - libqt5serialport5-dev
+    - qtmultimedia5-dev
+    - libqt5multimedia5-plugins
+    - libqt5sql5-sqlite
+    - libudev-dev
+    
+- name: Downloading WSJT-X sources
+  ansible.builtin.get_url:
+    url: "{{ wsjtx_source_url }}"
+    dest: "/tmp/wsjtx-{{ wsjtx_version }}.tgz"
+  register: wsjtx_source
+
+- name: Unpacking WSJT-X
+  ansible.builtin.unarchive:
+    remote_src: yes
+    dest: /tmp/
+    src: "{{ wsjtx_source.dest }}"
+  when: wsjtx_source.changed
+  register: wsjtx_source_unpack
+
+- name: Defining CMAKE_INSTALL_PREFIX
+  ansible.builtin.command:
+    cmd: "cmake -D CMAKE_INSTALL_PREFIX=/tmp/wsjtx-{{ wsjtx_version }}"
+  args:
+    chdir: "/tmp/wsjtx-{{ wsjtx_version }}"
+  when: wsjtx_source_unpack is changed
+  register: wsjtx_install_prefix_defined
+
+- name: Disabling manpages and docs during build
+  ansible.builtin.command:
+    cmd: "cmake -DWSJT_SKIP_MANPAGES=ON -DWSJT_GENERATE_DOCS=OFF"
+  args:
+    chdir: "/tmp/wsjtx-{{ wsjtx_version }}"
+  when: wsjtx_install_prefix_defined is changed
+  register: wsjtx_disable_manpages
+
+- name: Compiling WSJT-X
+  ansible.builtin.command:
+    cmd: "cmake --build . --target install -j4"
+  args:
+    chdir: "/tmp/wsjtx-{{ wsjtx_version }}"
+  when: wsjtx_disable_manpages is changed
+  register: wsjtx_compiled
+
+- name: Getting list of binaries
+  ansible.builtin.find:
+    paths: /tmp/wsjtx-{{ wsjtx_version }}/bin
+    recurse: yes
+  when: wsjtx_compiled is changed
+  register: binaries_to_copy
+
+- name: Copying binaries
+  ansible.builtin.copy:
+    remote_src: yes
+    src: "{{ item.path }}"
+    dest: /usr/local/bin
+    owner: root
+    group: root
+    mode: 0755
+  with_items: "{{ binaries_to_copy.files }}"
+  when: binaries_to_copy.matched > 0
+
+- name: Copying desktop file
+  ansible.builtin.copy:
+    remote_src: yes
+    src: /tmp/wsjtx-{{ wsjtx_version }}/share/applications/wsjtx.desktop
+    dest: /usr/share/applications
+    owner: root
+    group: root
+    mode: 0644
+  when: wsjtx_compiled is changed
+
+- name: Copying icon
+  ansible.builtin.copy:
+    remote_src: yes
+    src: /tmp/wsjtx-{{ wsjtx_version }}/share/pixmaps/wsjtx_icon.png
+    dest: /usr/share/pixmaps
+    owner: root
+    group: root
+    mode: 0644
+  when: wsjtx_compiled is changed
+
+- name: Remove sources
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/wsjtx-{{ wsjtx_version }}.tgz
+    - /tmp/wsjtx-{{ wsjtx_version }}
+  when: wsjtx_compiled is changed

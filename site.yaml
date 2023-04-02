@@ -1,0 +1,12 @@
+---
+- hosts: all
+  vars_files:
+    - variables.yaml
+  roles:
+    #- bootstrap
+    #- flrig
+    #- fldigi
+    #- flwkey
+    #- wsjtx
+    #- js8call
+    - conky

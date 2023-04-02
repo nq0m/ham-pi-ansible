@@ -6,6 +6,7 @@ conky.config = {
 	update_interval = 0.5,
 	total_run_times = 0,
 	own_window = true,
+    own_window_argb_visual = true,
 	own_window_type = 'normal',
 	own_window_transparent = true,
 	own_window_hints = 'undecorated,below,sticky,skip_taskbar,skip_pager',
@@ -54,7 +55,6 @@ ${font}
 ${font Arial:bold:size=14}${color Yellow}SYSTEM ${color DarkSlateGray} ${hr 2}
 ${font Arial:bold:size=14}${color White}Frequency $alignr${freq_g cpu0}Ghz
 ${font Arial:bold:size=14}${color White}Uptime $alignr${uptime}
-${font Arial:bold:size=14}${color White}Temp: $alignr ${exec /usr/bin/vcgencmd measure_temp | cut -c6-9} C
 ${voffset -15}
 ${font Arial:bold:size=10}${color White}CPU${alignr}${cpu}%
 ${cpubar cpu}
@@ -65,7 +65,7 @@ $swapbar
 ${font Arial:bold:size=10}${color White}HDD $alignc ${fs_used /home} / ${fs_size /home} $alignr ${fs_free_perc /home}%
 ${fs_bar /home}
 
-${font Arial:bold:size=14}${color Yellow}NETWORK/HOTSPOT ${color DarkSlateGray}${hr 2}
+${font Arial:bold:size=14}${color Yellow}NETWORK${color DarkSlateGray}${hr 2}
 ${font Arial:bold:size=14}${color White}Wireless IP address $alignr ${addr wlan0}
 ${font Arial:bold:size=14}${color White}Wired IP address $alignr ${addr eth0}
 

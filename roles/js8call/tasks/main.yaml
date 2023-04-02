@@ -1,0 +1,85 @@
+---
+# Tasks file for installing JS8Call
+- name: Install dependencies
+  ansible.builtin.apt:
+    pkg:
+    - cmake
+    - gfortran
+    - qtbase5-dev
+    - libqt5serialport5-dev
+    - qtmultimedia5-dev
+    - libqt5multimedia5-plugins
+    - libudev-dev
+    - libhamlib-dev
+
+- name: Downloading JS8Call sources
+  ansible.builtin.get_url:
+    url: "{{ js8call_source_url }}"
+    dest: "/tmp/js8call-{{ js8call_version }}.tgz"
+  register: js8call_source
+
+- name: Unpacking JS8Call
+  ansible.builtin.unarchive:
+    remote_src: yes
+    dest: /tmp/
+    src: "{{ js8call_source.dest }}"
+  when: js8call_source.changed
+  register: js8call_source_unpack
+
+- name: Defining CMAKE_INSTALL_PREFIX
+  ansible.builtin.command:
+    cmd: "cmake -D CMAKE_INSTALL_PREFIX=/tmp/js8call"
+  args:
+    chdir: "/tmp/js8call"
+  when: js8call_source_unpack is changed
+  register: js8call_install_prefix_defined
+
+- name: Compiling JS8Call
+  ansible.builtin.command:
+    cmd: "cmake --build . -- -j4"
+  args:
+    chdir: "/tmp/js8call"
+  when: js8call_install_prefix_defined is changed
+  register: js8call_compiled
+
+- name: Copying binaries
+  ansible.builtin.copy:
+    remote_src: yes
+    src: "/tmp/js8call/{{ item }}"
+    dest: /usr/local/bin
+    owner: root
+    group: root
+    mode: 0755
+  loop:
+    - js8
+    - js8call
+  when: js8call_compiled is changed
+
+- name: Copying desktop file
+  ansible.builtin.copy:
+    remote_src: yes
+    src: /tmp/js8call/js8call.desktop
+    dest: /usr/share/applications
+    owner: root
+    group: root
+    mode: 0644
+  when: js8call_compiled is changed
+
+- name: Copying icon
+  ansible.builtin.copy:
+    remote_src: yes
+    src: /tmp/js8call/artwork/icon_128.svg
+    dest: /usr/share/pixmaps/js8call_icon.svg
+    owner: root
+    group: root
+    mode: 0644
+  when: js8call_compiled is changed
+
+- name: Remove sources
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/js8call-{{ js8call_version }}.tgz
+    - /tmp/js8call
+  when: js8call_compiled is changed

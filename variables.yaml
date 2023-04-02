@@ -1,0 +1,15 @@
+---
+flrig_version: 1.4.8
+flrig_source_url: http://www.w1hkj.com/files/flrig/flrig-{{ flrig_version }}.tar.gz
+
+fldigi_version: 4.1.26
+fldigi_source_url: http://www.w1hkj.com/files/fldigi/fldigi-{{ fldigi_version }}.tar.gz
+
+flwkey_version: 1.2.3
+flwkey_source_url: http://www.w1hkj.com/files/flwkey/flwkey-{{ flwkey_version }}.tar.gz
+
+wsjtx_version: 2.6.1
+wsjtx_source_url: https://sourceforge.net/projects/wsjt/files/wsjtx-{{ wsjtx_version }}/wsjtx-{{ wsjtx_version }}.tgz
+
+js8call_version: 2.2.0
+js8call_source_url: http://files.js8call.com/{{ js8call_version }}/js8call-{{ js8call_version }}.tgz

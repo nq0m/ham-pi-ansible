@@ -1,0 +1,30 @@
+---
+# Tasks file for installing Conky
+- name: Install Conky
+  ansible.builtin.apt:
+    pkg:
+    - conky
+
+- name: Create autostart directory
+  ansible.builtin.file:
+    path: /home/jeremy/.config/autostart
+    state: directory
+    owner: jeremy
+    group: jeremy
+    mode: 0700
+
+- name: Symlink conky to autostart
+  ansible.builtin.file:
+    src: /usr/share/applications/conky.desktop
+    dest: /home/jeremy/.config/autostart/conky.desktop
+    owner: jeremy
+    group: jeremy
+    state: link
+
+- name: Copying conkyrc
+  ansible.builtin.copy:
+    src: conkyrc
+    dest: /home/jeremy/.conkyrc
+    owner: jeremy
+    group: jeremy
+    mode: 0600
